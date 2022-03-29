@@ -1,0 +1,94 @@
+---
+title: "Survival Analysis of Guinea Pigs"
+output: pdf_document
+---
+
+```{r}
+data <- read.csv("~/Desktop/data.txt", sep=";")
+data
+```
+
+```{r}
+colours <- c("turquoise3", "turquoise4")
+
+hist(data$lifetime, breaks = 20, col = colours,
+     main = "Frequency Distribution of Lifetimes", freq = F)
+
+lines(density(data$lifetime), col = "orangered",
+     main = "Density Distribution of Lifetimes",
+     xlim = c(0, 735))
+abline(v=735, col = "turquoise3")
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=lifetime, color=censored, fill=censored)) +
+geom_density(alpha=0.3)
+```
+
+## Testing with Weibull Distribution
+
+```{r}
+NR_fit_Weibull = function(x,beta_0,eps=0.000001)
+{
+  beta=beta_0
+  n = length(x);
+  sumlogx = sum(log(x));
+  diff = 1;alpha = beta_0[1];theta = beta_0[2];
+  
+  while(diff>eps)
+  {
+    beta.old = beta;
+    w1 = sum(x^alpha)
+    w2 = sum(x^alpha*log(x))
+    w3 = sum(x^alpha*(log(x)^2))
+    s = c(n/alpha + sumlogx - w2 / theta,
+          -n/theta + w1 / theta^2)
+    Jbar = matrix(c(-n/alpha^2 - w3/theta,w2/theta^2,
+                    w2/theta^2,n/theta^2-w1*2/(theta^3)),
+                  ncol=2)
+    beta = beta - solve(Jbar)%*%s
+    alpha = beta[1] ; theta = beta[2]
+    diff = sum(abs(beta-beta.old))
+  }
+  list(beta= beta,Jbar=Jbar)
+}
+```
+
+```{r}
+lifetime = data$lifetime
+lifetime
+fit = NR_fit_Weibull(x = lifetime, beta_0 = c(5,555), eps=0.001)
+fit
+```
+
+```{r}
+dWeibull = function(x,alpha,theta)
+{
+  density = (alpha/theta)*x^(alpha-1)*exp(-(x^alpha)/theta)
+  return(density)
+}
+
+x=seq(0,555, length=1000)
+dens_norm = dWeibull(x=x,alpha=fit$beta[1],theta=fit$beta[2])/sum(dWeibull(x=x,alpha=fit$beta[1],theta=fit$beta[2]))
+hist(data$lifetime, freq = FALSE, col = colours,
+     breaks = 20)
+curve(dWeibull(x,alpha=fit$beta[1],theta=fit$beta[2]), add=TRUE,col="#370031")
+lines(density(data$lifetime), col = "#0b0033",
+     main = "Density Distribution of Lifetimes",
+     xlim = c(0, 735))
+
+
+
+library(fitdistrplus)
+fit_R = fitdist(data = lifetime, distr = "weibull", method = "mle")
+
+dens_R = dweibull(x = x, shape = fit_R$estimate[1], 
+                  scale = fit_R$estimate[2])
+dens_R = dens_R/sum(dens_R)
+plot(x,dens_norm, type='l', lwd = 2)
+lines(x, dens_R, col = 2, lty = 2)
+```
+
+ 
