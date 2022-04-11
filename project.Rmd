@@ -1,0 +1,265 @@
+---
+title: "Survival Analysis of Guinea Pigs"
+output: pdf_document
+---
+
+```{r}
+data <- read.csv("~/Desktop/data.txt", sep=";")
+data
+```
+
+```{r}
+colours <- c("turquoise3", "turquoise4")
+
+hist(data$lifetime, breaks = 20, col = colours,
+     main = "Frequency Distribution of Lifetimes", freq = F,
+     xlab = "Lifetimes")
+
+# lines(density(data$lifetime), col = "orangered",
+#      main = "Density Distribution of Lifetimes",
+#      xlim = c(0, 735))
+abline(v=735, col = "turquoise3")
+```
+
+```{r}
+2
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=lifetime, color=censored, fill=censored)) +
+geom_density(alpha=0.3)
+```
+
+## Testing with Weibull Distribution
+
+```{r}
+NR_fit_Weibull = function(x,beta_0,eps=0.000001)
+{
+  beta=beta_0
+  n = length(x);
+  sumlogx = sum(log(x));
+  diff = 1;alpha = beta_0[1];theta = beta_0[2];
+  
+  while(diff>eps)
+  {
+    beta.old = beta;
+    w1 = sum(x^alpha)
+    w2 = sum(x^alpha*log(x))
+    w3 = sum(x^alpha*(log(x)^2))
+    s = c(n/alpha + sumlogx - w2 / theta,
+          -n/theta + w1 / theta^2)
+    Jbar = matrix(c(-n/alpha^2 - w3/theta,w2/theta^2,
+                    w2/theta^2,n/theta^2-w1*2/(theta^3)),
+                  ncol=2)
+    beta = beta - solve(Jbar)%*%s
+    alpha = beta[1] ; theta = beta[2]
+    diff = sum(abs(beta-beta.old))
+  }
+  list(beta= beta,Jbar=Jbar)
+}
+```
+
+```{r}
+lifetime = data$lifetime
+lifetime
+fit = NR_fit_Weibull(x = lifetime, beta_0 = c(5,555), eps=0.001)
+fit
+```
+
+```{r}
+dWeibull = function(x,alpha,theta)
+{
+  density = (alpha/theta)*x^(alpha-1)*exp(-(x^alpha)/theta)
+  return(density)
+}
+
+x=seq(0,555, length=1000)
+dens_norm = dWeibull(x=x,alpha=fit$beta[1],theta=fit$beta[2])/sum(dWeibull(x=x,alpha=fit$beta[1],theta=fit$beta[2]))
+hist(data$lifetime, freq = FALSE, col = colours,
+     breaks = 20)
+curve(dWeibull(x,alpha=fit$beta[1],theta=fit$beta[2]), add=TRUE,col="#370031")
+lines(density(data$lifetime), col = "#0b0033",
+     main = "Density Distribution of Lifetimes",
+     xlim = c(0, 735))
+
+
+
+library(fitdistrplus)
+fit_R = fitdist(data = lifetime, distr = "weibull", method = "mle")
+
+dens_R = dweibull(x = x, shape = fit_R$estimate[1], 
+                  scale = fit_R$estimate[2])
+dens_R = dens_R/sum(dens_R)
+plot(x,dens_norm, type='l', lwd = 2)
+lines(x, dens_R, col = 2, lty = 2)
+```
+## Removing Censorship:
+
+
+```{r}
+no.censor <- data$lifetime[data$censored == 0]
+hist(no.censor, breaks = 19, col = colours,
+     main = "Frequency Distribution of Lifetimes (without censoring)", freq = F,
+     xlab = "Lifetimes")
+lines(density(no.censor), col = "orangered",
+     main = "Density Distribution of Lifetimes",
+     xlim = c(0, 735))
+
+```
+
+```{r}
+descdist(no.censor, boot = 1001, discrete = F)
+```
+
+```{r}
+fit.gamma <- fitdist(no.censor, "gamma")
+fit.norm <- fitdist(no.censor, "norm")
+fit.exp <- fitdist(no.censor, "exp")
+fit.lognormal <- fitdist(no.censor, "lnorm")
+```
+
+
+
+
+```{r}
+plot(fit.norm)
+plot(fit.gamma)
+plot(fit.exp)
+```
+
+## Kolmogorov-Smirnov test
+
+```{r}
+fitdistr(no.censor, "gamma")
+```
+
+```{r}
+ks.test(no.censor, "pgamma", shape = 1.9150458171)
+```
+
+```{r}
+n.sims <- 5e4
+
+stats <- replicate(n.sims, {      
+  r <- rgamma(n = length(no.censor)
+                , shape= fit.gamma$estimate["shape"]
+                , rate = fit.gamma$estimate["rate"]
+  )
+  estfit.gamma <- fitdist(r, "gamma") # added to account for the estimated parameters
+  as.numeric(ks.test(r
+                     , "pgamma"
+                     , shape= estfit.gamma$estimate["shape"]
+                     , rate = estfit.gamma$estimate["rate"])$statistic
+  )      
+})
+```
+
+```{r}
+plot(ecdf(stats), las = 1, main = "KS-test statistic simulation (CDF)", col = "orangered", lwd = 1.7)
+grid()
+```
+
+```{r}
+library(logspline)
+fit <- logspline(stats)
+
+1 - plogspline(ks.test(no.censor
+                       , "pgamma"
+                       , shape= fit.gamma$estimate["shape"]
+                       , rate = fit.gamma$estimate["rate"])$statistic
+               , fit
+)
+```
+
+```{r}
+wilcox.test(no.censor, rgamma(length(no.censor), 1.9150458171, 0.0073987974))
+```
+
+```{r}
+hist(rgamma(length(no.censor), 1.9150458171, 0.0073987974),
+     breaks = 19, freq = F)
+```
+```{r}
+table(data$regime)
+
+data_exper <- data$lifetime[data$regime == "M_4.3" & data$censored == 0]
+data_control <- data$lifetime[data$regime == "M_C" & data$censored == 0]
+
+hist(data_control)
+hist(data_exper)
+```
+
+```{r}
+library(multimode)
+modetest(no.censor)
+```
+
+```{r}
+gofstat(fit.exp)
+```
+
+```{r}
+gofstat(fit.gamma)
+```
+
+```{r}
+gofstat(fit.norm)
+```
+
+```{r}
+gofstat(fit.lognormal)
+```
+
+
+```{r}
+xs <- seq(10, 750, len=50)
+
+true.gamma <- rgamma(1e6, shape= fit.gamma$estimate["shape"]
+                         , rate = fit.gamma$estimate["rate"])
+
+boot.pdf <- sapply(1:1000, function(i) {
+  xi <- sample(x, size=length(x), replace=TRUE)
+  xi <- (xi - min(xi) + 0.001) / (max(xi) - min(xi) + 0.002)
+  MLE.est <- suppressWarnings(fitdist(xi, distr="gamma"))  
+  dgamma(xs, shape=MLE.est$estimate["shape"],  rate = MLE.est$estimate["rate"])
+}
+)
+
+boot.cdf <- sapply(1:1000, function(i) {
+  xi <- sample(x, size=length(x), replace=TRUE)
+  xi <- (xi - min(xi) + 0.001) / (max(xi) - min(xi) + 0.002)
+  MLE.est <- suppressWarnings(fitdist(xi, distr="gamma"))  
+  pgamma(xs, shape= MLE.est$estimate["shape"],  rate = MLE.est$estimate["rate"])
+}
+)   
+
+par(bg="white", las=1, cex=1.2)
+plot(xs, boot.pdf[, 1], type="l", col=rgb(.6, .6, .6, .1), ylim=range(boot.pdf),
+     xlab="x", ylab="Probability density")
+for(i in 2:ncol(boot.pdf)) lines(xs, boot.pdf[, i], col=rgb(.6, .6, .6, .1))
+
+
+quants <- apply(boot.pdf, 1, quantile, c(0.025, 0.5, 0.975))
+min.point <- apply(boot.pdf, 1, min, na.rm=TRUE)
+max.point <- apply(boot.pdf, 1, max, na.rm=TRUE)
+lines(xs, quants[1, ], col="red", lwd=1.5, lty=2)
+lines(xs, quants[3, ], col="red", lwd=1.5, lty=2)
+lines(xs, quants[2, ], col="darkred", lwd=2)
+
+```
+
+
+```{r}
+library(gamlss)
+library(gamlss.dist)
+library(gamlss.add)
+
+x <- no.censor
+
+fit <- fitDist(x, k = 2, type = "realplus", trace = FALSE, try.gamlss = TRUE)
+
+summary(fit)
+```
+
