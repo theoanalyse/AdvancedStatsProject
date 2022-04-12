@@ -16,7 +16,7 @@ In this experimentation, we search for compatible distributions and subsequently
 
 - model_fitting.Rmd: R program to search for compatible distributions, fit them and verify the suitability of the best model
 
-- monte_carlo.R: R implementation of **Monte Carlo** simulations showing the evolution of the Mean-Squared error of Maximum-Likelihood esitmators 
+- monte_carlo.R: R implementation of **Monte Carlo** simulations showing the evolution of the Mean-Squared error of Maximum-Likelihood estimators 
 
 - newton_method.E: R implementation of **Newton-Raphson**'s numerical method
 
