@@ -21,3 +21,5 @@ In this experimentation, we search for compatible distributions and subsequently
 - newton_method.E: R implementation of **Newton-Raphson**'s numerical method
 
 - newton_method.E: Python implementation of **Newton-Raphson**'s numerical method
+
+- report.pdf: The actual report that relates to these files.
