@@ -24,5 +24,6 @@ In this experimentation, we search for compatible distributions and subsequently
 
 - report.pdf: The actual report that relates to these files.
 
-<html><br/></html>
+<br/>
+
 **Thanks for taking the time to read our report and go through our code!**
