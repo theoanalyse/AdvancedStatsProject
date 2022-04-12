@@ -16,7 +16,7 @@ In this experimentation, we search for compatible distributions and subsequently
 
 - model_fitting.Rmd: add purpose please
 
-- monte_carlo.R: 
+- monte_carlo.R: R implementation of simulations showing the evolution of the Mean-Squared error of Maximum-Likelihood esitmators 
 
 - newton_method.E: R implementation of **Newton-Raphson**'s numerical method
 
