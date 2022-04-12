@@ -14,12 +14,14 @@ In this experimentation, we search for compatible distributions and subsequently
 
 - fisher_method.py: Python implementation of **Fisher**'s numerical method
 
-- model_fitting.Rmd: add purpose please
+- model_fitting.Rmd: R program to search for compatible distributions, fit them and verify the suitability of the best model
 
-- monte_carlo.R: R implementation of simulations showing the evolution of the Mean-Squared error of Maximum-Likelihood esitmators 
+- monte_carlo.R: R implementation of **Monte Carlo** simulations showing the evolution of the Mean-Squared error of Maximum-Likelihood esitmators 
 
 - newton_method.E: R implementation of **Newton-Raphson**'s numerical method
 
 - newton_method.E: Python implementation of **Newton-Raphson**'s numerical method
 
 - report.pdf: The actual report that relates to these files.
+
+Thanks for taking the time to read our report and go through our code!
